@@ -378,6 +378,10 @@ async def post_init(application: Application):
     ])
 
 def run_bot() -> None:
+    usernames = [x for x in config.allowed_telegram_usernames if isinstance(x, str)]
+    user_ids = [x for x in config.allowed_telegram_usernames if isinstance(x, int)]
+    user_filter = filters.User(username=usernames) | filters.User(user_id=user_ids) if len(config.allowed_telegram_usernames) > 0 else filters.ALL
+    
     application = (
         ApplicationBuilder()
         .token(config.telegram_token)
@@ -386,14 +390,6 @@ def run_bot() -> None:
         .post_init(post_init)
         .build()
     )
-
-    # add handlers
-    user_filter = filters.ALL
-    if len(config.allowed_telegram_usernames) > 0:
-        usernames = [x for x in config.allowed_telegram_usernames if isinstance(x, str)]
-        user_ids = [x for x in config.allowed_telegram_usernames if isinstance(x, int)]
-        user_filter = filters.User(username=usernames) | filters.User(user_id=user_ids)
-
     application.add_handler(CommandHandler("start", start_handle, filters=user_filter))
     application.add_handler(CommandHandler("help", help_handle, filters=user_filter))
 
@@ -411,6 +407,10 @@ def run_bot() -> None:
     application.add_error_handler(error_handle)
     
     # start the bot
+    for handler in handlers:
+        application.add_handler(handler)
+    
+    application.add_error_handler(error_handle)
     application.run_polling()
 
 
